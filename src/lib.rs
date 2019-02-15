@@ -21,12 +21,29 @@ use std::borrow::Cow;
 #[cfg(feature = "std")]
 use std::panic::{Location, PanicInfo};
 
+/// Neutralizes a value, returning a `Sync` view to it.
+///
+/// For example, `RefCell<T>` implements it with `Output` as
+/// `<T as Neutralize>::Output`, accessing the inner value of the
+/// cell directly through `RefCell::as_ptr`.
 pub trait Neutralize {
+    /// The type of the `Sync` view.
     type Output: ?Sized + Sync;
 
+    /// Neutralizes `self`.
+    ///
+    /// # Safety
+    ///
+    /// It is undefined behaviour to use `self` as long as any thread is
+    /// still doing something with the return value of that method.
     unsafe fn neutralize(&self) -> &Self::Output;
 }
 
+/// A wrapper for neutralized values.
+///
+/// If `T` is `Neutralize`, this type derefs to `<T as Neutralize>::Output`,
+/// with no safe way to reach out for the `T` value itself, which is why
+/// it is sound for `Inert<T>` to be `Sync`.
 #[repr(transparent)]
 pub struct Inert<T: ?Sized> {
     value: T,
@@ -37,6 +54,16 @@ impl<T> Inert<T>
 where
     T: ?Sized + Neutralize,
 {
+    /// Creates a new `Inert<T>` from a neutralizable value.
+    ///
+    /// # Safety
+    ///
+    /// The user must swear on the holy baguette that they won't do anything
+    /// with the `&T` as long as any thread is still doing things with the
+    /// `&Inert<T>`, either directly or through other neutralized values
+    /// reached through the inner `&<T as Neutralize>::Output` value, lest
+    /// they provoke undefined behaviour, or worse, spoil their entire wheat
+    /// harvest.
     #[inline]
     pub unsafe fn new_unchecked(value: &T) -> &Self {
         &*(value as *const T as *const Self)
@@ -480,6 +507,7 @@ impl<'a> Neutralize for PanicInfo<'a> {
     }
 }
 
+/// An inert version of `std::panic::PanicInfo<'a>`.
 #[cfg(feature = "std")]
 pub struct InertPanicInfo<'a> {
     value: PanicInfo<'a>,
@@ -489,6 +517,7 @@ unsafe impl<'a> Sync for InertPanicInfo<'a> {}
 
 #[cfg(feature = "std")]
 impl<'a> InertPanicInfo<'a> {
+    /// Returns the location of the panic.
     #[inline]
     pub fn location(&self) -> Option<&Location> {
         self.value.location()

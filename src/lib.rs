@@ -227,7 +227,7 @@ neutralize_as_self! {
     u8, u16, u32, u64, u128, usize,
 }
 
-// Non-generic types from libcore.
+// Sync types from libcore.
 neutralize_as_self! {
     core::alloc::Layout,
     core::alloc::LayoutErr,
@@ -291,7 +291,7 @@ neutralize_as_self! {
     core::arch::x86_64::__m256i,
 }
 
-// Non-generic types from libstd.
+// Sync types from libstd.
 #[cfg(feature = "std")]
 neutralize_as_self! {
     std::alloc::System,

@@ -349,6 +349,7 @@ neutralize_as_self! {
     std::sync::RwLockWriteGuard<'a, T> (T: (?Sized + Sync)),
     std::sync::TryLockError<T> (T: (Sync)),
     std::sync::WaitTimeoutResult,
+    std::sync::Weak<T> (T: (?Sized + Send + Sync)),
     std::sync::mpsc::RecvError,
     std::sync::mpsc::RecvTimeoutError,
     std::sync::mpsc::SendError<T> (T: (Sync)),

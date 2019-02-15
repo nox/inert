@@ -107,6 +107,18 @@ where
     }
 }
 
+impl<T> Neutralize for core::cell::Cell<T>
+where
+    T: ?Sized + Neutralize,
+{
+    type Output = <T as Neutralize>::Output;
+
+    #[inline]
+    unsafe fn neutralize(&self) -> &Self::Output {
+        (*self.as_ptr()).neutralize()
+    }
+}
+
 impl<T> Neutralize for core::cell::RefCell<T>
 where
     T: ?Sized + Neutralize,

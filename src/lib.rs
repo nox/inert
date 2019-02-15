@@ -38,7 +38,7 @@ where
     T: ?Sized + Neutralize,
 {
     #[inline]
-    pub unsafe fn from_ref(value: &T) -> &Self {
+    pub unsafe fn new_unchecked(value: &T) -> &Self {
         &*(value as *const T as *const Self)
     }
 }

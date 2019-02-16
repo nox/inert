@@ -14,12 +14,21 @@
 #[cfg(feature = "std")]
 extern crate core;
 
+use core::cell::{Cell, Ref, RefCell, RefMut};
 use core::ops::Deref;
 
 #[cfg(feature = "std")]
 use std::borrow::Cow;
 #[cfg(feature = "std")]
 use std::panic::{Location, PanicInfo};
+#[cfg(feature = "std")]
+use std::rc::Rc;
+
+/// Marker trait for types that can be safely neutralized.
+pub unsafe trait Neutralize: NeutralizeMut {}
+
+/// Marker trait for types that can be safely neutralized mutably.
+pub unsafe trait NeutralizeMut: NeutralizeUnsafe {}
 
 /// Unsafely neutralizes a reference, returning a `Sync` view to it.
 ///
@@ -41,6 +50,14 @@ pub unsafe trait NeutralizeUnsafe {
 
 /// A wrapper for neutralized values.
 ///
+/// If `T` is `Neutralize`, then it can be safely neutralized from an
+/// immutable reference. Almost everything implements `Neutralize` but
+/// `RefCell<T>` (and similar types).
+///
+/// If `T` is `NeutralizeMut`, then it can be safely neutralized from a mutable
+/// reference. Almost everything implements `NeutralizeMut` but `Rc<RefCell<T>>`
+/// and `&'a RefCell<T>` (and similar types).
+///
 /// If `T` is `NeutralizeUnsafe`, this type derefs to
 /// `<T as NeutralizeUnsafe>::Output`,
 /// with no safe way to reach out for the `T` value itself, which is why
@@ -55,6 +72,24 @@ impl<T> Inert<T>
 where
     T: ?Sized + NeutralizeUnsafe,
 {
+    /// Creates a new `Inert<T>` from a reference.
+    #[inline]
+    pub fn new(value: &T) -> &Self
+    where
+        T: Neutralize,
+    {
+        unsafe { Self::new_unchecked(value) }
+    }
+
+    /// Creates a new `Inert<T>` from a mutable reference.
+    #[inline]
+    pub fn new_mut(value: &mut T) -> &Self
+    where
+        T: NeutralizeMut,
+    {
+        unsafe { Self::new_unchecked(value) }
+    }
+
     /// Unsafely creates a new `Inert<T>` from a reference.
     ///
     /// # Safety
@@ -83,6 +118,52 @@ where
     }
 }
 
+// Obviously everything in this crate is unsafe so it needs serious scrutiny,
+// but this part especially is where all the magic happens.
+//
+// The following implementations are how the two safe methods `Inert::new` and
+// `Inert::new_mut` are constrained to actually be sound.
+
+unsafe impl<'a, T> NeutralizeMut for &'a T where T: ?Sized + Neutralize {}
+unsafe impl<'a, T> Neutralize for &'a T where T: ?Sized + Neutralize {}
+
+unsafe impl<'a, T> NeutralizeMut for &'a mut T where T: ?Sized + NeutralizeMut {}
+unsafe impl<'a, T> Neutralize for &'a mut T where T: ?Sized + Neutralize {}
+
+unsafe impl<T> NeutralizeMut for Cell<T> where T: ?Sized + NeutralizeMut {}
+
+unsafe impl<T> NeutralizeMut for RefCell<T> where T: ?Sized + NeutralizeMut {}
+
+unsafe impl<'a, T> NeutralizeMut for Ref<'a, T> where T: ?Sized + Neutralize {}
+unsafe impl<'a, T> Neutralize for Ref<'a, T> where T: ?Sized + Neutralize {}
+
+unsafe impl<'a, T> NeutralizeMut for RefMut<'a, T> where T: ?Sized + NeutralizeMut {}
+unsafe impl<'a, T> Neutralize for RefMut<'a, T> where T: ?Sized + Neutralize {}
+
+#[cfg(feature = "std")]
+unsafe impl<T> NeutralizeMut for Rc<T> where T: ?Sized + Neutralize {}
+#[cfg(feature = "std")]
+unsafe impl<T> Neutralize for Rc<T> where T: ?Sized + Neutralize {}
+
+#[cfg(feature = "std")]
+unsafe impl<'a, T> NeutralizeMut for Cow<'a, T>
+where
+    T: 'a + ?Sized + Neutralize + ToOwned,
+    T::Owned: NeutralizeMut<Output = T::Output>,
+{
+}
+
+#[cfg(feature = "std")]
+unsafe impl<'a, T> Neutralize for Cow<'a, T>
+where
+    T: 'a + ?Sized + Neutralize + ToOwned,
+    T::Owned: Neutralize<Output = T::Output>,
+{
+}
+
+// There follow all the `NeutralizeUnsafe` impls for the types that we
+// mentioned in the previous important section.
+
 unsafe impl<'a, T> NeutralizeUnsafe for &'a T
 where
     T: ?Sized + NeutralizeUnsafe,
@@ -107,7 +188,7 @@ where
     }
 }
 
-unsafe impl<T> NeutralizeUnsafe for core::cell::Cell<T>
+unsafe impl<T> NeutralizeUnsafe for Cell<T>
 where
     T: ?Sized + NeutralizeUnsafe,
 {
@@ -119,7 +200,7 @@ where
     }
 }
 
-unsafe impl<T> NeutralizeUnsafe for core::cell::RefCell<T>
+unsafe impl<T> NeutralizeUnsafe for RefCell<T>
 where
     T: ?Sized + NeutralizeUnsafe,
 {
@@ -131,7 +212,7 @@ where
     }
 }
 
-unsafe impl<'a, T> NeutralizeUnsafe for core::cell::Ref<'a, T>
+unsafe impl<'a, T> NeutralizeUnsafe for Ref<'a, T>
 where
     T: ?Sized + NeutralizeUnsafe,
 {
@@ -143,7 +224,7 @@ where
     }
 }
 
-unsafe impl<'a, T> NeutralizeUnsafe for core::cell::RefMut<'a, T>
+unsafe impl<'a, T> NeutralizeUnsafe for RefMut<'a, T>
 where
     T: ?Sized + NeutralizeUnsafe,
 {
@@ -156,7 +237,7 @@ where
 }
 
 #[cfg(feature = "std")]
-unsafe impl<T> NeutralizeUnsafe for std::rc::Rc<T>
+unsafe impl<T> NeutralizeUnsafe for Rc<T>
 where
     T: ?Sized + NeutralizeUnsafe,
 {
@@ -189,6 +270,10 @@ where
     }
 }
 
+// 🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖
+// Below this sandwich are only uninteresting and trivial implementations.
+// 🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖
+
 unsafe impl<T> NeutralizeUnsafe for [T]
 where
     T: NeutralizeUnsafe,
@@ -201,11 +286,15 @@ where
     }
 }
 
+unsafe impl<T> NeutralizeMut for [T] where T: NeutralizeMut {}
+unsafe impl<T> Neutralize for [T] where T: Neutralize {}
+
 #[cfg(feature = "std")]
 unsafe impl<T> NeutralizeUnsafe for Vec<T>
 where
     T: NeutralizeUnsafe,
 {
+    // Not `Vec<Inert<T>>` so that `Cow<[T]>` works.
     type Output = [Inert<T>];
 
     #[inline]
@@ -213,6 +302,11 @@ where
         <[T]>::neutralize_unsafe(self)
     }
 }
+
+#[cfg(feature = "std")]
+unsafe impl<T> NeutralizeMut for Vec<T> where T: NeutralizeMut {}
+#[cfg(feature = "std")]
+unsafe impl<T> Neutralize for Vec<T> where T: Neutralize {}
 
 macro_rules! neutralize_as_deref {
     ($($($id:ident)::* <$($param:tt),*>,)*) => {$(
@@ -226,6 +320,18 @@ macro_rules! neutralize_as_deref {
             unsafe fn neutralize_unsafe(&self) -> &Self::Output {
                 T::neutralize_unsafe(self)
             }
+        }
+
+        unsafe impl<$($param),*> NeutralizeMut for $($id)::* <$($param),*>
+        where
+            $($param: ?Sized + NeutralizeMut,)*
+        {
+        }
+
+        unsafe impl<$($param),*> Neutralize for $($id)::* <$($param),*>
+        where
+            $($param: ?Sized + Neutralize,)*
+        {
         }
     )*};
 }
@@ -250,6 +356,9 @@ macro_rules! neutralize_as_target {
                 <$output>::neutralize_unsafe(self)
             }
         }
+
+        unsafe impl NeutralizeMut for $ty {}
+        unsafe impl Neutralize for $ty {}
     )*};
 }
 
@@ -264,13 +373,27 @@ neutralize_as_target! {
 macro_rules! neutralize_as_self {
     ($($($id:ident)::* $(<$($param:tt),*>)* $(($($p:ident: ($($bound:tt)*)),*))*,)*) => {$(
         unsafe impl $(<$($param),*>)* NeutralizeUnsafe for $($id)::* $(<$($param),*>)*
-        $(where $($p: $($bound)*),*)* {
+        $(where
+            $($p: $($bound)*),*)*
+        {
             type Output = Self;
 
             #[inline]
             unsafe fn neutralize_unsafe(&self) -> &Self::Output {
                 self
             }
+        }
+
+        unsafe impl $(<$($param),*>)* NeutralizeMut for $($id)::* $(<$($param),*>)*
+        $(where
+            $($p: $($bound)*),*)*
+        {
+        }
+
+        unsafe impl $(<$($param),*>)* Neutralize for $($id)::* $(<$($param),*>)*
+        $(where
+            $($p: $($bound)*),*)*
+        {
         }
     )*};
 }
@@ -470,6 +593,18 @@ macro_rules! neutralize_tuple {
                 &*(self as *const Self as *const Self::Output)
             }
         }
+
+        unsafe impl<$($p),*> NeutralizeMut for ($($p,)*)
+        where
+            $($p: NeutralizeMut,)*
+        {
+        }
+
+        unsafe impl<$($p),*> Neutralize for ($($p,)*)
+        where
+            $($p: Neutralize,)*
+        {
+        }
     )*}
 }
 
@@ -491,7 +626,7 @@ neutralize_tuple! {
 
 macro_rules! neutralize_as_ptr_cast {
     ($($($id:ident)::* <$($lt:lifetime,)* $($param:ident),*>,)*) => {$(
-        unsafe impl <$($lt,)* $($param),*> NeutralizeUnsafe for $($id)::* <$($lt,)* $($param),*>
+        unsafe impl<$($lt,)* $($param),*> NeutralizeUnsafe for $($id)::* <$($lt,)* $($param),*>
         where
             $($param: NeutralizeUnsafe,)*
         {
@@ -501,6 +636,18 @@ macro_rules! neutralize_as_ptr_cast {
             unsafe fn neutralize_unsafe(&self) -> &Self::Output {
                 &*(self as *const Self as *const Self::Output)
             }
+        }
+
+        unsafe impl<$($lt,)* $($param),*> NeutralizeMut for $($id)::* <$($lt,)* $($param),*>
+        where
+            $($param: NeutralizeMut,)*
+        {
+        }
+
+        unsafe impl<$($lt,)* $($param),*> Neutralize for $($id)::* <$($lt,)* $($param),*>
+        where
+            $($param: Neutralize,)*
+        {
         }
     )*};
 }
@@ -576,6 +723,12 @@ unsafe impl<'a> NeutralizeUnsafe for PanicInfo<'a> {
         &*(self as *const Self as *const Self::Output)
     }
 }
+
+#[cfg(feature = "std")]
+unsafe impl<'a> NeutralizeMut for PanicInfo<'a> {}
+
+#[cfg(feature = "std")]
+unsafe impl<'a> Neutralize for PanicInfo<'a> {}
 
 /// An inert version of `std::panic::PanicInfo<'a>`.
 #[cfg(feature = "std")]

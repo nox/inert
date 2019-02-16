@@ -83,28 +83,27 @@ where
     }
 }
 
-unsafe impl<T> NeutralizeUnsafe for [T]
+unsafe impl<'a, T> NeutralizeUnsafe for &'a T
 where
-    T: NeutralizeUnsafe,
+    T: ?Sized + NeutralizeUnsafe,
 {
-    type Output = [Inert<T>];
+    type Output = <T as NeutralizeUnsafe>::Output;
 
     #[inline]
     unsafe fn neutralize_unsafe(&self) -> &Self::Output {
-        &*(self as *const Self as *const Self::Output)
+        T::neutralize_unsafe(self)
     }
 }
 
-#[cfg(feature = "std")]
-unsafe impl<T> NeutralizeUnsafe for Vec<T>
+unsafe impl<'a, T> NeutralizeUnsafe for &'a mut T
 where
-    T: NeutralizeUnsafe,
+    T: ?Sized + NeutralizeUnsafe,
 {
-    type Output = [Inert<T>];
+    type Output = <T as NeutralizeUnsafe>::Output;
 
     #[inline]
     unsafe fn neutralize_unsafe(&self) -> &Self::Output {
-        <[T]>::neutralize_unsafe(self)
+        T::neutralize_unsafe(self)
     }
 }
 
@@ -132,6 +131,43 @@ where
     }
 }
 
+unsafe impl<'a, T> NeutralizeUnsafe for core::cell::Ref<'a, T>
+where
+    T: ?Sized + NeutralizeUnsafe,
+{
+    type Output = <T as NeutralizeUnsafe>::Output;
+
+    #[inline]
+    unsafe fn neutralize_unsafe(&self) -> &Self::Output {
+        T::neutralize_unsafe(self)
+    }
+}
+
+unsafe impl<'a, T> NeutralizeUnsafe for core::cell::RefMut<'a, T>
+where
+    T: ?Sized + NeutralizeUnsafe,
+{
+    type Output = <T as NeutralizeUnsafe>::Output;
+
+    #[inline]
+    unsafe fn neutralize_unsafe(&self) -> &Self::Output {
+        T::neutralize_unsafe(self)
+    }
+}
+
+#[cfg(feature = "std")]
+unsafe impl<T> NeutralizeUnsafe for std::rc::Rc<T>
+where
+    T: ?Sized + NeutralizeUnsafe,
+{
+    type Output = <T as NeutralizeUnsafe>::Output;
+
+    #[inline]
+    unsafe fn neutralize_unsafe(&self) -> &Self::Output {
+        T::neutralize_unsafe(self)
+    }
+}
+
 #[cfg(feature = "std")]
 unsafe impl<'a, T> NeutralizeUnsafe for Cow<'a, T>
 where
@@ -153,11 +189,36 @@ where
     }
 }
 
+unsafe impl<T> NeutralizeUnsafe for [T]
+where
+    T: NeutralizeUnsafe,
+{
+    type Output = [Inert<T>];
+
+    #[inline]
+    unsafe fn neutralize_unsafe(&self) -> &Self::Output {
+        &*(self as *const Self as *const Self::Output)
+    }
+}
+
+#[cfg(feature = "std")]
+unsafe impl<T> NeutralizeUnsafe for Vec<T>
+where
+    T: NeutralizeUnsafe,
+{
+    type Output = [Inert<T>];
+
+    #[inline]
+    unsafe fn neutralize_unsafe(&self) -> &Self::Output {
+        <[T]>::neutralize_unsafe(self)
+    }
+}
+
 macro_rules! neutralize_as_deref {
-    ($(for<$($lt:lifetime,)* T> $ty:ty,)*) => {$(
-        unsafe impl<$($lt,)* T> NeutralizeUnsafe for $ty
+    ($($($id:ident)::* <$($param:tt),*>,)*) => {$(
+        unsafe impl<$($param),*> NeutralizeUnsafe for $($id)::* <$($param),*>
         where
-            T: ?Sized + NeutralizeUnsafe,
+            $($param: ?Sized + NeutralizeUnsafe,)*
         {
             type Output = <T as NeutralizeUnsafe>::Output;
 
@@ -170,17 +231,12 @@ macro_rules! neutralize_as_deref {
 }
 
 neutralize_as_deref! {
-    for<'a, T> &'a T,
-    for<'a, T> &'a mut T,
-    for<'a, T> core::cell::Ref<'a, T>,
-    for<'a, T> core::cell::RefMut<'a, T>,
-    for<T> core::mem::ManuallyDrop<T>,
+    core::mem::ManuallyDrop<T>,
 }
 
 #[cfg(feature = "std")]
 neutralize_as_deref! {
-    for<T> Box<T>,
-    for<T> std::rc::Rc<T>,
+    Box<T>,
 }
 
 #[cfg(feature = "std")]

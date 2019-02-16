@@ -87,7 +87,7 @@ unsafe impl<'a, T> NeutralizeUnsafe for &'a T
 where
     T: ?Sized + NeutralizeUnsafe,
 {
-    type Output = <T as NeutralizeUnsafe>::Output;
+    type Output = T::Output;
 
     #[inline]
     unsafe fn neutralize_unsafe(&self) -> &Self::Output {
@@ -99,7 +99,7 @@ unsafe impl<'a, T> NeutralizeUnsafe for &'a mut T
 where
     T: ?Sized + NeutralizeUnsafe,
 {
-    type Output = <T as NeutralizeUnsafe>::Output;
+    type Output = T::Output;
 
     #[inline]
     unsafe fn neutralize_unsafe(&self) -> &Self::Output {
@@ -111,7 +111,7 @@ unsafe impl<T> NeutralizeUnsafe for core::cell::Cell<T>
 where
     T: ?Sized + NeutralizeUnsafe,
 {
-    type Output = <T as NeutralizeUnsafe>::Output;
+    type Output = T::Output;
 
     #[inline]
     unsafe fn neutralize_unsafe(&self) -> &Self::Output {
@@ -123,7 +123,7 @@ unsafe impl<T> NeutralizeUnsafe for core::cell::RefCell<T>
 where
     T: ?Sized + NeutralizeUnsafe,
 {
-    type Output = <T as NeutralizeUnsafe>::Output;
+    type Output = T::Output;
 
     #[inline]
     unsafe fn neutralize_unsafe(&self) -> &Self::Output {
@@ -135,7 +135,7 @@ unsafe impl<'a, T> NeutralizeUnsafe for core::cell::Ref<'a, T>
 where
     T: ?Sized + NeutralizeUnsafe,
 {
-    type Output = <T as NeutralizeUnsafe>::Output;
+    type Output = T::Output;
 
     #[inline]
     unsafe fn neutralize_unsafe(&self) -> &Self::Output {
@@ -147,7 +147,7 @@ unsafe impl<'a, T> NeutralizeUnsafe for core::cell::RefMut<'a, T>
 where
     T: ?Sized + NeutralizeUnsafe,
 {
-    type Output = <T as NeutralizeUnsafe>::Output;
+    type Output = T::Output;
 
     #[inline]
     unsafe fn neutralize_unsafe(&self) -> &Self::Output {
@@ -160,7 +160,7 @@ unsafe impl<T> NeutralizeUnsafe for std::rc::Rc<T>
 where
     T: ?Sized + NeutralizeUnsafe,
 {
-    type Output = <T as NeutralizeUnsafe>::Output;
+    type Output = T::Output;
 
     #[inline]
     unsafe fn neutralize_unsafe(&self) -> &Self::Output {
@@ -172,9 +172,9 @@ where
 unsafe impl<'a, T> NeutralizeUnsafe for Cow<'a, T>
 where
     T: 'a + ?Sized + NeutralizeUnsafe + ToOwned,
-    <T as ToOwned>::Owned: NeutralizeUnsafe<Output = <T as NeutralizeUnsafe>::Output>,
+    T::Owned: NeutralizeUnsafe<Output = T::Output>,
 {
-    type Output = <T as NeutralizeUnsafe>::Output;
+    type Output = T::Output;
 
     #[inline]
     unsafe fn neutralize_unsafe(&self) -> &Self::Output {
@@ -182,8 +182,8 @@ where
             Cow::Borrowed(ref this) => T::neutralize_unsafe(this),
             Cow::Owned(ref this) => {
                 // We can't just deref the Cow<T> because it calls
-                // <T::Owned>::borrow and <T::Owned> may not be Sync.
-                <<T as ToOwned>::Owned>::neutralize_unsafe(this)
+                // T::Owned::borrow and T::Owned may not be Sync.
+                T::Owned::neutralize_unsafe(this)
             },
         }
     }
@@ -220,7 +220,7 @@ macro_rules! neutralize_as_deref {
         where
             $($param: ?Sized + NeutralizeUnsafe,)*
         {
-            type Output = <T as NeutralizeUnsafe>::Output;
+            type Output = T::Output;
 
             #[inline]
             unsafe fn neutralize_unsafe(&self) -> &Self::Output {

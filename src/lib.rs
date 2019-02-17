@@ -15,6 +15,8 @@
 extern crate core;
 
 use core::cell::{Cell, Ref, RefCell, RefMut};
+use core::cmp::Ordering;
+use core::fmt;
 use core::ops::Deref;
 
 #[cfg(feature = "std")]
@@ -267,6 +269,80 @@ where
                 T::Owned::neutralize_unsafe(this)
             },
         }
+    }
+}
+
+// Inert<T> implements many traits through T::Output.
+
+impl<T> AsRef<T::Output> for Inert<T>
+where
+    T: ?Sized + NeutralizeUnsafe,
+{
+    #[inline]
+    fn as_ref(&self) -> &T::Output {
+        self
+    }
+}
+
+impl<T> PartialEq for Inert<T>
+where
+    T: ?Sized + NeutralizeUnsafe,
+    T::Output: PartialEq,
+{
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        T::Output::eq(self, other)
+    }
+}
+
+impl<T> Eq for Inert<T>
+where
+    T: ?Sized + NeutralizeUnsafe,
+    T::Output: Eq,
+{
+}
+
+impl<T> PartialOrd for Inert<T>
+where
+    T: ?Sized + NeutralizeUnsafe,
+    T::Output: PartialOrd,
+{
+    #[inline]
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        T::Output::partial_cmp(self, other)
+    }
+}
+
+impl<T> Ord for Inert<T>
+where
+    T: ?Sized + NeutralizeUnsafe,
+    T::Output: Ord,
+{
+    #[inline]
+    fn cmp(&self, other: &Self) -> Ordering {
+        T::Output::cmp(self, other)
+    }
+}
+
+impl<T> fmt::Debug for Inert<T>
+where
+    T: ?Sized + NeutralizeUnsafe,
+    T::Output: fmt::Debug,
+{
+    #[inline]
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        T::Output::fmt(self, fmt)
+    }
+}
+
+impl<T> fmt::Display for Inert<T>
+where
+    T: ?Sized + NeutralizeUnsafe,
+    T::Output: fmt::Display,
+{
+    #[inline]
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        T::Output::fmt(self, fmt)
     }
 }
 

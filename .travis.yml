@@ -1,18 +1,34 @@
 language: rust
 matrix:
   include:
-    - rust: 1.28.0
+    - name: 1.31.0, core only (Linux)
+      rust: 1.31.0
       os: linux
-    - rust: stable
+      env: FEATURES="--features std"
+    - name: 1.31.0 (Linux)
+      rust: 1.31.0
       os: linux
-    - rust: stable
+      env: FEATURES="--features std"
+    - name: Stable (Linux)
+      rust: stable
+      os: linux
+      env: FEATURES="--features std"
+    - name: Stable (macOS)
+      rust: stable
       os: osx
-    - rust: stable
+      env: FEATURES="--features std"
+    - name: Stable (Windows)
+      rust: stable
       os: windows
-    - rust: beta
+      env: FEATURES="--features std"
+    - name: Beta (Linux)
+      rust: beta
       os: linux
-    - rust: nightly
+      env: FEATURES="--features std"
+    - name: Nightly (Linux)
+      rust: nightly
       os: linux
+      env: FEATURES="--features std"
 branches:
   only:
     - staging # bors r+

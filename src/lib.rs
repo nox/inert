@@ -106,6 +106,25 @@ where
     pub unsafe fn new_unchecked(value: &T) -> &Self {
         &*(value as *const T as *const Self)
     }
+
+    /// Returns a reference to the inner `T`.
+    #[inline]
+    pub fn get_ref(this: &Self) -> &T
+    where
+        T: Sync,
+    {
+        &this.value
+    }
+
+    /// Unsafely returns a reference to the inner `T`.
+    ///
+    /// # Safety
+    ///
+    /// Undefined behaviour is possible if `T` is not `Sync`.
+    #[inline]
+    pub unsafe fn get_ref_unchecked(this: &Self) -> &T {
+        &this.value
+    }
 }
 
 impl<T> Deref for Inert<T>

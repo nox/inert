@@ -1,12 +1,12 @@
 language: rust
 matrix:
   include:
-    - name: 1.28.0, core only (Linux)
-      rust: 1.28.0
+    - name: 1.31.0, core only (Linux)
+      rust: 1.31.0
       os: linux
       env: FEATURES="--features std"
-    - name: 1.28.0 (Linux)
-      rust: 1.28.0
+    - name: 1.31.0 (Linux)
+      rust: 1.31.0
       os: linux
       env: FEATURES="--features std"
     - name: Stable (Linux)

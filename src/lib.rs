@@ -17,6 +17,7 @@ extern crate core;
 use core::cell::{Cell, Ref, RefCell, RefMut};
 use core::cmp::Ordering;
 use core::fmt;
+use core::marker::PhantomData;
 use core::ops::Deref;
 
 #[cfg(feature = "std")]
@@ -66,6 +67,7 @@ pub unsafe trait NeutralizeUnsafe {
 /// it is sound for `Inert<T>` to be `Sync`.
 #[repr(transparent)]
 pub struct Inert<T: ?Sized> {
+    _marker: PhantomData<*mut ()>,
     value: T,
 }
 unsafe impl<T> Sync for Inert<T> where T: ?Sized {}

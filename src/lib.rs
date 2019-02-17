@@ -35,9 +35,8 @@ pub unsafe trait NeutralizeMut: NeutralizeUnsafe {}
 
 /// Unsafely neutralizes a reference, returning a `Sync` view to it.
 ///
-/// For example, `RefCell<T>` implements it with `Output` as
-/// `<T as NeutralizeUnsafe>::Output`, accessing the inner value of the
-/// cell directly through `RefCell::as_ptr`.
+/// For example, `RefCell<T>` implements it with `Output` as `T::Output`,
+/// accessing the inner value of the cell directly through `RefCell::as_ptr`.
 pub unsafe trait NeutralizeUnsafe {
     /// The type of the `Sync` view.
     type Output: ?Sized + Sync;
@@ -61,8 +60,7 @@ pub unsafe trait NeutralizeUnsafe {
 /// reference. Almost everything implements `NeutralizeMut` but `Rc<RefCell<T>>`
 /// and `&'a RefCell<T>` (and similar types).
 ///
-/// If `T` is `NeutralizeUnsafe`, this type derefs to
-/// `<T as NeutralizeUnsafe>::Output`,
+/// If `T` is `NeutralizeUnsafe`, this type derefs to `T::Output`,
 /// with no safe way to reach out for the `T` value itself, which is why
 /// it is sound for `Inert<T>` to be `Sync`.
 #[repr(transparent)]
@@ -101,9 +99,8 @@ where
     /// The user must swear on the holy baguette that they won't do anything
     /// with the `&T` as long as any thread is still doing things with the
     /// `&Inert<T>`, either directly or through other neutralized values
-    /// reached through the inner `&<T as NeutralizeUnsafe>::Output` value, lest
-    /// they provoke undefined behaviour, or worse, spoil their entire wheat
-    /// harvest.
+    /// reached through the inner `&T::Output` value, lest they provoke
+    /// undefined behaviour, or worse, spoil their entire wheat harvest.
     #[inline]
     pub unsafe fn new_unchecked(value: &T) -> &Self {
         &*(value as *const T as *const Self)

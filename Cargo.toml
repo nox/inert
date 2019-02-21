@@ -16,3 +16,7 @@ std = []
 
 [lib]
 test = false
+
+[[test]]
+name = "refcells"
+required-features = ["std"]

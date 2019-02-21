@@ -4,7 +4,7 @@ matrix:
     - name: 1.31.0, core only (Linux)
       rust: 1.31.0
       os: linux
-      env: FEATURES="--features std"
+      env: FEATURES=""
     - name: 1.31.0 (Linux)
       rust: 1.31.0
       os: linux
@@ -33,3 +33,4 @@ branches:
   only:
     - staging # bors r+
     - trying # bors try
+script: cargo test $FEATURES

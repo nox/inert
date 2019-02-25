@@ -1,6 +1,6 @@
 # Inert
 
-This is a mechanism to access non-`Sync` values in `Sync` contexts.
+This is a mechanism to access non-`Sync` values in a `Sync` way.
 
 ## How is this sound?
 

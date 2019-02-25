@@ -9,22 +9,25 @@ fn inert_new_mut() {
     let mut tree = tree();
     let inert = Inert::new_mut(&mut tree);
 
-    assert_eq!(&**inert.name(), "premature optimisation");
+    assert_eq!(inert.name().0, "premature optimisation");
 
     let wrath = &inert.children()[4];
-    assert_eq!(&**wrath.name(), "wrath");
+    assert_eq!(wrath.name().0, "wrath");
 
     let me = &wrath.children()[0];
-    assert_eq!(&**me.name(), "nox");
+    assert_eq!(me.name().0, "nox");
 
     let best_language_ever = &inert.children()[0].children()[0];
-    assert_eq!(&**best_language_ever.name(), "coq");
+    assert_eq!(best_language_ever.name().0, "coq");
 }
 
 struct Node {
-    name: String,
+    name: Name,
     children: Vec<RefCell<Node>>,
 }
+
+#[inert::neutralize(as Self)]
+struct Name(String);
 
 fn tree() -> RefCell<Node> {
     let mut root = Node::new("premature optimisation");
@@ -86,9 +89,9 @@ unsafe impl Sync for InertNode {}
 unsafe impl NeutralizeMut for Node {}
 
 impl InertNode {
-    fn name(&self) -> &Inert<String> {
+    fn name(&self) -> &Inert<Name> {
         // Compile check that tells us that `String` is `NeutralizeMut`.
-        let _ = <Inert<String>>::new_mut;
+        let _ = <Inert<Name>>::new_mut;
         unsafe { Inert::new_unchecked(&self.value.name) }
     }
 
@@ -102,7 +105,7 @@ impl InertNode {
 
 impl Node {
     fn new(name: &str) -> RefCell<Self> {
-        RefCell::new(Self { name: name.into(), children: vec![] })
+        RefCell::new(Self { name: Name(name.into()), children: vec![] })
     }
 
     fn append_child(&mut self, child: RefCell<Self>) {

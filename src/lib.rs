@@ -11,6 +11,9 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+#[doc(inline)]
+pub use inert_derive::neutralize;
+
 #[cfg(feature = "std")]
 extern crate core;
 

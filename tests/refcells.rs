@@ -1,5 +1,5 @@
 use std::cell::RefCell;
-use inert::{Inert, NeutralizeMut, NeutralizeUnsafe};
+use inert::{Inert, NeutralizeMut};
 
 #[test]
 fn inert_new_mut() {
@@ -18,6 +18,7 @@ fn inert_new_mut() {
     assert_eq!(best_language_ever.name().0, "coq");
 }
 
+#[inert::neutralize(as unsafe InertNode)]
 struct Node {
     name: Name,
     children: Vec<RefCell<Node>>,
@@ -25,6 +26,16 @@ struct Node {
 
 #[inert::neutralize(as Self)]
 struct Name(String);
+
+impl Node {
+    fn new(name: &str) -> RefCell<Self> {
+        RefCell::new(Self { name: Name(name.into()), children: vec![] })
+    }
+
+    fn append_child(&mut self, child: RefCell<Self>) {
+        self.children.push(child);
+    }
+}
 
 fn tree() -> RefCell<Node> {
     let mut root = Node::new("premature optimisation");
@@ -70,42 +81,19 @@ fn tree() -> RefCell<Node> {
 // FIXME(nox): Everything below that point should be generated through
 // some sort of procedural macro.
 
-unsafe impl NeutralizeUnsafe for Node {
-    type Output = InertNode;
-
-    unsafe fn neutralize_unsafe(&self) -> &Self::Output {
-        &*(self as *const Self as *const Self::Output)
-    }
-}
-
-struct InertNode {
-    value: Node,
-}
-unsafe impl Sync for InertNode {}
-
 unsafe impl NeutralizeMut for Node {}
 
 impl InertNode {
     fn name(&self) -> &Inert<Name> {
         // Compile check that tells us that `String` is `NeutralizeMut`.
         let _ = <Inert<Name>>::new_mut;
-        unsafe { Inert::new_unchecked(&self.value.name) }
+        unsafe { Inert::new_unchecked(&self.value.as_ref().name) }
     }
 
     fn children(&self) -> &Inert<Vec<RefCell<Node>>> {
         // Compile check that tells us that `Vec<RefCell<Node>>` is also
         // `NeutralizeMut`.
         let _ = <Inert<Vec<RefCell<Node>>>>::new_mut;
-        unsafe { Inert::new_unchecked(&self.value.children) }
-    }
-}
-
-impl Node {
-    fn new(name: &str) -> RefCell<Self> {
-        RefCell::new(Self { name: Name(name.into()), children: vec![] })
-    }
-
-    fn append_child(&mut self, child: RefCell<Self>) {
-        self.children.push(child);
+        unsafe { Inert::new_unchecked(&self.value.as_ref().children) }
     }
 }

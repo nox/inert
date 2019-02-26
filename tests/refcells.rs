@@ -1,7 +1,4 @@
-extern crate core;
-extern crate inert;
-
-use core::cell::RefCell;
+use std::cell::RefCell;
 use inert::{Inert, NeutralizeMut, NeutralizeUnsafe};
 
 #[test]

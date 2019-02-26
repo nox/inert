@@ -68,8 +68,7 @@ pub unsafe trait NeutralizeUnsafe {
 /// it is sound for `Inert<T>` to be `Sync`.
 #[repr(transparent)]
 pub struct Inert<T: ?Sized> {
-    _marker: PhantomData<*mut ()>,
-    value: T,
+    value: Neutralized<T>,
 }
 unsafe impl<T> Sync for Inert<T> where T: ?Sized {}
 
@@ -115,7 +114,7 @@ where
     where
         T: Sync,
     {
-        &this.value
+        unsafe { Self::get_ref_unchecked(this) }
     }
 
     /// Unsafely returns a reference to the inner `T`.
@@ -125,7 +124,7 @@ where
     /// Undefined behaviour is possible if `T` is not `Sync`.
     #[inline]
     pub unsafe fn get_ref_unchecked(this: &Self) -> &T {
-        &this.value
+        this.value.as_ref()
     }
 }
 
@@ -137,7 +136,29 @@ where
 
     #[inline]
     fn deref(&self) -> &Self::Target {
-        unsafe { self.value.neutralize_unsafe() }
+        unsafe { Self::get_ref_unchecked(self).neutralize_unsafe() }
+    }
+}
+
+/// A neutralized value.
+///
+/// Used by `#[inert::neutralize(as unsafe Foo)]`, shouldn't be needed directly.
+/// Helpful nonetheless to ensure the `T` value cannot be safely accessed.
+#[repr(transparent)]
+pub struct Neutralized<T: ?Sized> {
+    _marker: PhantomData<*mut ()>,
+    value: T,
+}
+unsafe impl<T> Sync for Neutralized<T> where T: ?Sized {}
+
+impl<T> Neutralized<T>
+where
+    T: ?Sized,
+{
+    /// Unsafely returns a reference to the inner `T` value.
+    #[inline]
+    pub unsafe fn as_ref(&self) -> &T {
+        &self.value
     }
 }
 

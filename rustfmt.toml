@@ -1,2 +1,4 @@
+force_multiline_blocks = true
 match_block_trailing_comma = true
 reorder_imports = true
+use_small_heuristics = "Max"

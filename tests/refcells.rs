@@ -20,7 +20,9 @@ fn inert_new_mut() {
 
 #[inert::neutralize(as unsafe InertNode)]
 struct Node {
+    #[inert::field]
     name: Name,
+    #[inert::field]
     children: Vec<RefCell<Node>>,
 }
 
@@ -78,22 +80,7 @@ fn tree() -> RefCell<Node> {
     root
 }
 
-// FIXME(nox): Everything below that point should be generated through
-// some sort of procedural macro.
-
+// FIXME(nox): We should be able to derive that impl, so that the getter
+// can type check that their return type does indeed implement `NeutralizeMut`
+// themselves.
 unsafe impl NeutralizeMut for Node {}
-
-impl InertNode {
-    fn name(&self) -> &Inert<Name> {
-        // Compile check that tells us that `String` is `NeutralizeMut`.
-        let _ = <Inert<Name>>::new_mut;
-        unsafe { Inert::new_unchecked(&self.value.as_ref().name) }
-    }
-
-    fn children(&self) -> &Inert<Vec<RefCell<Node>>> {
-        // Compile check that tells us that `Vec<RefCell<Node>>` is also
-        // `NeutralizeMut`.
-        let _ = <Inert<Vec<RefCell<Node>>>>::new_mut;
-        unsafe { Inert::new_unchecked(&self.value.as_ref().children) }
-    }
-}

@@ -1,15 +1,14 @@
 [package]
 name = "inert_derive"
-version = "0.1.0" # update `documentation` link on bump
+version = "0.1.1" # update `documentation` link on bump
 authors = ["Anthony Ramine <n.oxyde@gmail.com>"]
 edition = "2018"
 description = "See the inert crate"
 license = "Apache-2.0 OR MIT"
 repository = "https://github.com/nox/inert"
-documentation = "https://docs.rs/inert_derive/0.1.0/"
+documentation = "https://docs.rs/inert_derive/0.1.1/"
 categories = ["concurrency", "data-structures"]
 keywords = ["sync", "thread"]
-exclude = ["/bors.toml", "/.travis.yml", "/.vscode/**"]
 
 [lib]
 proc-macro = true
@@ -18,5 +17,8 @@ test = false
 [dependencies]
 proc-macro2 = "0.4.27"
 quote = "0.6.11"
-syn = {version = "0.15.26", features = ["parsing"]}
-synstructure = "0.10.1"
+
+[dependencies.syn]
+version = "0.15.27"
+default-features = false
+features = ["derive", "parsing", "printing", "proc-macro"]

@@ -27,7 +27,7 @@ use syn::{
 /// `#[inert::field(vis? ident?)]`, if `ident` is missing, the getter is given
 /// the same name as the field itself.
 ///
-/// Given the following `Foo` type:
+/// Given the following `Node` type:
 ///
 /// ```ignore
 /// #[inert::neutralize(as pub(crate) unsafe InertNode)]
@@ -186,12 +186,16 @@ fn neutralize_as_wrapper(wrapper: Wrapper, mut input: DeriveInput) -> Result<Tok
     let type_name = &input.ident;
     let (impl_gen, ty_gen, where_) = input.generics.split_for_impl();
 
-    Ok(quote! {
-        #input
-
+    let wrapper = quote_spanned! {name.span()=>
         #vis struct #name #ty_gen #where_ {
             value: ::inert::Neutralized<#type_name #ty_gen>,
         }
+    };
+
+    Ok(quote! {
+        #input
+
+        #wrapper
 
         unsafe impl #impl_gen ::inert::NeutralizeUnsafe for #type_name #ty_gen #where_ {
             type Output = #name #ty_gen;
@@ -250,6 +254,7 @@ fn inert_methods<'input>(
         let getter_name = name.as_ref().unwrap_or(field_name);
 
         methods.extend(quote_spanned! {field.ty.span()=>
+            #[allow(unsafe_code)]
             #vis fn #getter_name(&self) -> &inert::Inert<#ty> {
                 unsafe { inert::Inert::new_unchecked(&self.value.as_ref().#field_name) }
             }

@@ -254,6 +254,7 @@ fn inert_methods<'input>(
         let getter_name = name.as_ref().unwrap_or(field_name);
 
         methods.extend(quote_spanned! {field.ty.span()=>
+            #[allow(unsafe_code)]
             #vis fn #getter_name(&self) -> &inert::Inert<#ty> {
                 unsafe { inert::Inert::new_unchecked(&self.value.as_ref().#field_name) }
             }

@@ -186,12 +186,16 @@ fn neutralize_as_wrapper(wrapper: Wrapper, mut input: DeriveInput) -> Result<Tok
     let type_name = &input.ident;
     let (impl_gen, ty_gen, where_) = input.generics.split_for_impl();
 
-    Ok(quote! {
-        #input
-
+    let wrapper = quote_spanned! {name.span()=>
         #vis struct #name #ty_gen #where_ {
             value: ::inert::Neutralized<#type_name #ty_gen>,
         }
+    };
+
+    Ok(quote! {
+        #input
+
+        #wrapper
 
         unsafe impl #impl_gen ::inert::NeutralizeUnsafe for #type_name #ty_gen #where_ {
             type Output = #name #ty_gen;

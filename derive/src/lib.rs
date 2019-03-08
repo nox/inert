@@ -27,7 +27,7 @@ use syn::{
 /// `#[inert::field(vis? ident?)]`, if `ident` is missing, the getter is given
 /// the same name as the field itself.
 ///
-/// Given the following `Foo` type:
+/// Given the following `Node` type:
 ///
 /// ```ignore
 /// #[inert::neutralize(as pub(crate) unsafe InertNode)]

@@ -74,7 +74,7 @@ unsafe impl<T> Sync for Inert<T> where T: ?Sized {}
 
 impl<T> Inert<T>
 where
-    T: ?Sized + NeutralizeUnsafe,
+    T: ?Sized,
 {
     /// Creates a new `Inert<T>` from a reference.
     #[inline]
@@ -700,10 +700,7 @@ neutralize_array! {
 
 macro_rules! neutralize_tuple {
     ($(($($p:ident),*),)*) => {$(
-        unsafe impl<$($p),*> NeutralizeUnsafe for ($($p,)*)
-        where
-            $($p: NeutralizeUnsafe,)*
-        {
+        unsafe impl<$($p),*> NeutralizeUnsafe for ($($p,)*) {
             type Output = ($(Inert<$p>),*);
 
             #[inline]
@@ -744,10 +741,7 @@ neutralize_tuple! {
 
 macro_rules! neutralize_as_ptr_cast {
     ($($($id:ident)::* <$($lt:lifetime,)* $($param:ident),*>,)*) => {$(
-        unsafe impl<$($lt,)* $($param),*> NeutralizeUnsafe for $($id)::* <$($lt,)* $($param),*>
-        where
-            $($param: NeutralizeUnsafe,)*
-        {
+        unsafe impl<$($lt,)* $($param),*> NeutralizeUnsafe for $($id)::* <$($lt,)* $($param),*> {
             type Output = $($id)::* <$($lt,)* $(Inert<$param>),*>;
 
             #[inline]

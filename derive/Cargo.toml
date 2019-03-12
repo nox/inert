@@ -1,12 +1,12 @@
 [package]
 name = "inert_derive"
-version = "0.1.2" # update `documentation` link on bump
+version = "0.1.3" # update `documentation` link on bump
 authors = ["Anthony Ramine <n.oxyde@gmail.com>"]
 edition = "2018"
 description = "See the inert crate"
 license = "Apache-2.0 OR MIT"
 repository = "https://github.com/nox/inert"
-documentation = "https://docs.rs/inert_derive/0.1.2/"
+documentation = "https://docs.rs/inert_derive/0.1.3/"
 categories = ["concurrency", "data-structures"]
 keywords = ["sync", "thread"]
 

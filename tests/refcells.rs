@@ -1,3 +1,5 @@
+#![deny(unsafe_code)]
+
 use std::cell::RefCell;
 use inert::{Inert, NeutralizeMut};
 
@@ -83,4 +85,5 @@ fn tree() -> RefCell<Node> {
 // FIXME(nox): We should be able to derive that impl, so that the getter
 // can type check that their return type does indeed implement `NeutralizeMut`
 // themselves.
+#[allow(unsafe_code)]
 unsafe impl NeutralizeMut for Node {}

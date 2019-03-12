@@ -157,15 +157,11 @@ fn neutralize_as_self(self_type: Token![Self], input: DeriveInput) -> TokenStrea
     let type_name = &input.ident;
     let (impl_gen, ty_gen, where_) = input.generics.split_for_impl();
 
-    // Spanned so that Sync type errors point to `Self` from `#[inert::neutralize(as Self)]`.
-    let unsafe_impl = quote_spanned! {self_type.span()=>
-        unsafe impl #impl_gen ::inert::NeutralizeUnsafe for #type_name #ty_gen #where_ {
-            type Output = Self;
-
-            #[inline]
-            unsafe fn neutralize_unsafe(&self) -> &Self { self }
-        }
-    };
+    // This is supposed to improve "trait bound is not satisfied" errors
+    // in case Self is !Sync, but this does not actually work yet.
+    //
+    // https://github.com/rust-lang/rust/issues/41817
+    let output = quote_spanned! {self_type.span()=> type Output = Self; };
 
     quote! {
         #input
@@ -173,7 +169,12 @@ fn neutralize_as_self(self_type: Token![Self], input: DeriveInput) -> TokenStrea
         unsafe impl #impl_gen ::inert::Neutralize for #type_name #ty_gen #where_ {}
         unsafe impl #impl_gen ::inert::NeutralizeMut for #type_name #ty_gen #where_ {}
 
-        #unsafe_impl
+        unsafe impl #impl_gen ::inert::NeutralizeUnsafe for #type_name #ty_gen #where_ {
+            #output
+
+            #[inline]
+            unsafe fn neutralize_unsafe(&self) -> &Self { self }
+        }
     }
 }
 

@@ -234,62 +234,63 @@ where
 
 unsafe impl<T> NeutralizeUnsafe for Cell<T>
 where
-    T: ?Sized + NeutralizeUnsafe,
+    T: ?Sized,
 {
-    type Output = T::Output;
+    type Output = Inert<T>;
 
     #[inline]
     unsafe fn neutralize_unsafe(&self) -> &Self::Output {
-        (*self.as_ptr()).neutralize_unsafe()
+        Inert::new_unchecked(&*self.as_ptr())
     }
 }
 
+// FIXME(nox): https://github.com/rust-lang/rust/issues/27733#issuecomment-473238229
 unsafe impl<T> NeutralizeUnsafe for RefCell<T>
 where
-    T: ?Sized + NeutralizeUnsafe,
+    T: ?Sized,
 {
-    type Output = T::Output;
+    type Output = Inert<T>;
 
     #[inline]
     unsafe fn neutralize_unsafe(&self) -> &Self::Output {
-        (*self.as_ptr()).neutralize_unsafe()
+        Inert::new_unchecked(&*self.as_ptr())
     }
 }
 
 unsafe impl<'a, T> NeutralizeUnsafe for Ref<'a, T>
 where
-    T: ?Sized + NeutralizeUnsafe,
+    T: ?Sized,
 {
-    type Output = T::Output;
+    type Output = Inert<T>;
 
     #[inline]
     unsafe fn neutralize_unsafe(&self) -> &Self::Output {
-        T::neutralize_unsafe(self)
+        Inert::new_unchecked(self)
     }
 }
 
 unsafe impl<'a, T> NeutralizeUnsafe for RefMut<'a, T>
 where
-    T: ?Sized + NeutralizeUnsafe,
+    T: ?Sized,
 {
-    type Output = T::Output;
+    type Output = Inert<T>;
 
     #[inline]
     unsafe fn neutralize_unsafe(&self) -> &Self::Output {
-        T::neutralize_unsafe(self)
+        Inert::new_unchecked(self)
     }
 }
 
 #[cfg(feature = "std")]
 unsafe impl<T> NeutralizeUnsafe for Rc<T>
 where
-    T: ?Sized + NeutralizeUnsafe,
+    T: ?Sized,
 {
-    type Output = T::Output;
+    type Output = Inert<T>;
 
     #[inline]
     unsafe fn neutralize_unsafe(&self) -> &Self::Output {
-        T::neutralize_unsafe(self)
+        Inert::new_unchecked(self)
     }
 }
 
@@ -392,10 +393,7 @@ where
 // Below this sandwich are only uninteresting and trivial implementations.
 // 🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖🥖
 
-unsafe impl<T> NeutralizeUnsafe for [T]
-where
-    T: NeutralizeUnsafe,
-{
+unsafe impl<T> NeutralizeUnsafe for [T] {
     type Output = [Inert<T>];
 
     #[inline]
@@ -408,10 +406,7 @@ unsafe impl<T> NeutralizeMut for [T] where T: NeutralizeMut {}
 unsafe impl<T> Neutralize for [T] where T: Neutralize {}
 
 #[cfg(feature = "std")]
-unsafe impl<T> NeutralizeUnsafe for Vec<T>
-where
-    T: NeutralizeUnsafe,
-{
+unsafe impl<T> NeutralizeUnsafe for Vec<T> {
     // Not `Vec<Inert<T>>` so that `Cow<[T]>` works.
     type Output = [Inert<T>];
 

@@ -275,7 +275,7 @@ where
         // https://github.com/rust-lang/rust/pull/59211
 
         struct RefCellRepr<T: ?Sized> {
-            flag: isize,
+            flag: Cell<isize>,
             _value: UnsafeCell<T>,
         }
 
@@ -286,7 +286,7 @@ where
         }
 
         unsafe {
-            if (*(self as *const Self as *const RefCellRepr<T>)).flag < 0 {
+            if (*(self as *const Self as *const RefCellRepr<T>)).flag.get() < 0 {
                 panic();
             }
             Inert::new_unchecked(&*self.value.as_ref().as_ptr())

@@ -26,8 +26,6 @@ use core::ops::Deref;
 #[cfg(feature = "std")]
 use std::borrow::Cow;
 #[cfg(feature = "std")]
-use std::panic::{Location, PanicInfo};
-#[cfg(feature = "std")]
 use std::rc::Rc;
 
 /// Marker trait for types that can be safely neutralized.

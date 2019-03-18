@@ -8,16 +8,16 @@ fn inert_new_mut() {
     let mut tree = tree();
     let inert = Inert::new_mut(&mut tree);
 
-    assert_eq!(inert.name().0, "premature optimisation");
+    assert_eq!(inert.borrow().name().0, "premature optimisation");
 
-    let wrath = &inert.children()[4];
-    assert_eq!(wrath.name().0, "wrath");
+    let wrath = &inert.borrow().children()[4];
+    assert_eq!(wrath.borrow().name().0, "wrath");
 
-    let me = &wrath.children()[0];
-    assert_eq!(me.name().0, "nox");
+    let me = &wrath.borrow().children()[0];
+    assert_eq!(me.borrow().name().0, "nox");
 
-    let best_language_ever = &inert.children()[0].children()[0];
-    assert_eq!(best_language_ever.name().0, "coq");
+    let best_language_ever = &inert.borrow().children()[0].borrow().children()[0];
+    assert_eq!(best_language_ever.borrow().name().0, "coq");
 }
 
 #[inert::neutralize(as unsafe InertNode)]

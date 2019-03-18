@@ -17,7 +17,7 @@ pub use inert_derive::neutralize;
 #[cfg(feature = "std")]
 extern crate core;
 
-use core::cell::{Cell, Ref, RefCell, RefMut};
+use core::cell::{Cell, Ref, RefCell, RefMut, UnsafeCell};
 use core::cmp::Ordering;
 use core::fmt;
 use core::marker::PhantomData;
@@ -244,16 +244,55 @@ where
     }
 }
 
-// FIXME(nox): https://github.com/rust-lang/rust/issues/27733#issuecomment-473238229
 unsafe impl<T> NeutralizeUnsafe for RefCell<T>
 where
     T: ?Sized,
 {
-    type Output = Inert<T>;
+    type Output = InertRefCell<T>;
 
     #[inline]
     unsafe fn neutralize_unsafe(&self) -> &Self::Output {
-        Inert::new_unchecked(&*self.as_ptr())
+        &*(self as *const Self as *const Self::Output)
+    }
+}
+
+/// An inert `RefCell<T>`.
+pub struct InertRefCell<T: ?Sized> {
+    value: Neutralized<RefCell<T>>,
+}
+
+impl<T> InertRefCell<T>
+where
+    T: ?Sized,
+{
+    /// Returns an inert reference to the inner `T`.
+    ///
+    /// # Panics
+    ///
+    /// This method panics if the `RefCell<T>` is currently borrowed mutably.
+    pub fn borrow(&self) -> &Inert<T> {
+        // FIXME(nox): This is nuts but life is too short to wait for
+        // RefCell::borrow_state to land.
+        //
+        // https://github.com/rust-lang/rust/pull/59211
+
+        struct RefCellRepr<T: ?Sized> {
+            flag: isize,
+            _value: UnsafeCell<T>,
+        }
+
+        #[cold]
+        #[inline(never)]
+        fn panic() {
+            panic!("already mutably borrowed")
+        }
+
+        unsafe {
+            if (*(self as *const Self as *const RefCellRepr<T>)).flag < 0 {
+                panic();
+            }
+            Inert::new_unchecked(&*self.value.as_ref().as_ptr())
+        }
     }
 }
 

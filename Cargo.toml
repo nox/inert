@@ -1,12 +1,12 @@
 [package]
 name = "inert"
-version = "0.2.4" # update `documentation` link on bump
+version = "0.3.0" # update `documentation` link on bump
 authors = ["Anthony Ramine <n.oxyde@gmail.com>"]
 edition = "2018"
 description = "Inert lets you use non-Sync values in a Sync way"
 license = "Apache-2.0 OR MIT"
 repository = "https://github.com/nox/inert"
-documentation = "https://docs.rs/inert/0.2.4/"
+documentation = "https://docs.rs/inert/0.3.0/"
 categories = ["concurrency", "data-structures"]
 keywords = ["sync", "thread"]
 

@@ -26,8 +26,6 @@ use core::ops::Deref;
 #[cfg(feature = "std")]
 use std::borrow::Cow;
 #[cfg(feature = "std")]
-use std::panic::{Location, PanicInfo};
-#[cfg(feature = "std")]
 use std::rc::Rc;
 
 /// Marker trait for types that can be safely neutralized.
@@ -277,7 +275,7 @@ where
         // https://github.com/rust-lang/rust/pull/59211
 
         struct RefCellRepr<T: ?Sized> {
-            flag: isize,
+            flag: Cell<isize>,
             _value: UnsafeCell<T>,
         }
 
@@ -288,7 +286,7 @@ where
         }
 
         unsafe {
-            if (*(self as *const Self as *const RefCellRepr<T>)).flag < 0 {
+            if (*(self as *const Self as *const RefCellRepr<T>)).flag.get() < 0 {
                 panic();
             }
             Inert::new_unchecked(&*self.value.as_ref().as_ptr())

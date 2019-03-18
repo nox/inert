@@ -821,39 +821,6 @@ neutralize_as_ptr_cast! {
     std::panic::AssertUnwindSafe<T>,
 }
 
-#[cfg(feature = "std")]
-unsafe impl<'a> NeutralizeUnsafe for PanicInfo<'a> {
-    type Output = InertPanicInfo<'a>;
-
-    #[inline]
-    unsafe fn neutralize_unsafe(&self) -> &Self::Output {
-        &*(self as *const Self as *const Self::Output)
-    }
-}
-
-#[cfg(feature = "std")]
-unsafe impl<'a> NeutralizeMut for PanicInfo<'a> {}
-
-#[cfg(feature = "std")]
-unsafe impl<'a> Neutralize for PanicInfo<'a> {}
-
-/// An inert version of `std::panic::PanicInfo<'a>`.
-#[cfg(feature = "std")]
-pub struct InertPanicInfo<'a> {
-    value: PanicInfo<'a>,
-}
-#[cfg(feature = "std")]
-unsafe impl<'a> Sync for InertPanicInfo<'a> {}
-
-#[cfg(feature = "std")]
-impl<'a> InertPanicInfo<'a> {
-    /// Returns the location of the panic.
-    #[inline]
-    pub fn location(&self) -> Option<&Location> {
-        self.value.location()
-    }
-}
-
 // TODO(nox): https://github.com/rust-lang/rust/pull/58369
 //
 // * std::collections::hash_map::Entry

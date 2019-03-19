@@ -1,3 +1,19 @@
+# inert_derive 0.1.4
+
+* Silenced a `dead_code` warning for the `value` field of generated wrappers.
+
+# 0.3.0
+
+## Highlight
+
+`RefCell<T>` now neutralizes to `InertRefCell<T>`, whose `borrow` method will
+panic if the `RefCell<T>` was borrowed mutably prior to being neutralized.
+
+## Other breaking changes
+
+* Made more types neutralize to `Inert<T>` to access non-`NeutralizeUnsafe` `T`s.
+* Removed `InertPanicInfo`.
+
 # 0.2.4
 
 The most notable change in this release is that impls of `NeutralizeUnsafe` for

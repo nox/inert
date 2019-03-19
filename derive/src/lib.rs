@@ -189,6 +189,7 @@ fn neutralize_as_wrapper(wrapper: Wrapper, mut input: DeriveInput) -> Result<Tok
 
     let wrapper = quote_spanned! {name.span()=>
         #vis struct #name #ty_gen #where_ {
+            #[allow(dead_code)]
             value: ::inert::Neutralized<#type_name #ty_gen>,
         }
     };
